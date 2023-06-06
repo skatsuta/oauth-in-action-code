@@ -38,6 +38,20 @@ var getAccessToken = function (req, res, next) {
     // Not recommended
     inToken = req.query.access_token;
   }
+
+  nosql.one().make((builder) => {
+    builder.where("access_token", inToken);
+    builder.callback((_, token) => {
+      if (token) {
+        console.log("We found a matching token: %s", inToken);
+      } else {
+        console.log("No matching token was found.");
+      }
+      req.access_token = token;
+
+      next();
+    });
+  });
 };
 
 app.options("/resource", cors());
@@ -45,10 +59,16 @@ app.options("/resource", cors());
 /*
  * Add the getAccessToken function to this handler
  */
-app.post("/resource", cors(), function (req, res) {
+app.post("/resource", getAccessToken, cors(), function (req, res) {
   /*
    * Check to see if the access token was found or not
    */
+
+  if (req.access_token) {
+    res.json(resource);
+  } else {
+    res.status(401).end();
+  }
 });
 
 var server = app.listen(9002, "localhost", function () {
