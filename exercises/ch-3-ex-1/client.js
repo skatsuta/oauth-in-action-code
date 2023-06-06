@@ -46,6 +46,7 @@ app.get("/authorize", function (req, res) {
   /*
    * Send the user to the authorization server
    */
+
   state = randomstring.generate();
   const authorizeUrl = buildUrl(authServer.authorizationEndpoint, {
     response_type: "code",
@@ -91,6 +92,24 @@ app.get("/fetch_resource", function (req, res) {
   /*
    * Use the access token to call the resource server
    */
+
+  if (!access_token) {
+    res.render("error", { error: "Missing access token." });
+    return;
+  }
+
+  const resource = request("POST", protectedResource, {
+    headers: { Authorization: `Bearer ${access_token}` },
+  });
+
+  if (200 <= resource.statusCode && resource.statusCode < 300) {
+    res.render("data", { resource: JSON.parse(resource.getBody()) });
+    return;
+  }
+
+  res.render("error", {
+    error: `Server returned response code: ${resource.statusCode}`,
+  });
 });
 
 var buildUrl = function (base, options, hash) {
